@@ -6,21 +6,25 @@ import sqlite3
 def funcion_database(id_web,num_linea,conn_horas,conn_paradas):
     no_entrado_horas   = [] #por si no entra,sabemos en que linea no ha entrado
     no_entrado_paradas = [] #por si no entra,sabemos linea no ha entrado
-    
+    ###BREAK THIS INTO TWO DIFFERENT FUNCTIONS
     for id_,nombre in zip(id_web,num_linea):
         trayectos = []
-        url_horas = 'http://transportesrober.com:9055/websae/Transportes/horar'+ \
-                    'io.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/2017&desde_ho'+ \
-                    'rario=si'.format(id_,nombre)
+        url_horas =  'http://transportesrober.com:9055/websae/Transportes/hora'
+        url_horas += 'rio.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/2017&desde'
+        url_horas += '_horario=si'
+        url_horas = url_horas.format(id_,nombre)
+        print(url_horas)
         soup = BSoup(url_horas).find('div',{'id':'PanelHorario'})
-        
+        print('Id: ',id_,'\nNombre: ',nombre)
         if (bool(soup)):     
             trayectos = soup.find_all('td',{'class':'tablacabecera'})
             for i,trayecto in enumerate(trayectos):
-                horasDF   = pd.DataFrame(columns = ['Linea','Trayecto','Horas'])
+                horasDF   = pd.DataFrame(
+                    columns = ['Linea','Trayecto','Horas'])
                 nombre_tabla = '{}'.format(nombre)+'_'+ \
                                '_'.join(trayecto.text.strip().split())
-                nombre_tabla = nombre_tabla.replace('-','').replace('__','_').replace(' ','')
+                nombre_tabla = nombre_tabla.replace('-','').replace('__','_')
+                nombre_tabla = nombre_tabla.replace(' ','')
                 tabla_horarios = soup.find_all('table')[2+i]
 
                 filas = tabla_horarios.find_all('tr')
@@ -29,7 +33,11 @@ def funcion_database(id_web,num_linea,conn_horas,conn_paradas):
                     tr_horas.extend(fila.text.split(':',1)[1].split(','))
 ##                tr_horas = ' '.join(tr_horas)
                 #data = [[nombre,nombre_tabla,tr_horas]
-                horasDF = horasDF.append(pd.DataFrame({'Linea':nombre,'Trayecto':nombre_tabla,'Horas':tr_horas},columns=['Linea','Trayecto','Horas']))
+                horasDF = horasDF.append(
+                    pd.DataFrame(
+                        {'Linea':nombre,'Trayecto':nombre_tabla,
+                         'Horas':tr_horas},
+                        columns=['Linea','Trayecto','Horas']))
                 
                 horasDF.to_sql(nombre_tabla,conn_horas,index=False)
                 conn_horas.commit()
@@ -82,7 +90,6 @@ def databases(id_web,num_linea):
 listado_lineasDF = pd.read_csv('lista_lineas_horarios.csv',
                                index_col = 'Unnamed: 0')
 listado_lineasDF = listado_lineasDF.reset_index(drop=True)
-
 id_web = listado_lineasDF.id_web.values
 num_linea = listado_lineasDF.num_linea.values
 databases(id_web,num_linea)
