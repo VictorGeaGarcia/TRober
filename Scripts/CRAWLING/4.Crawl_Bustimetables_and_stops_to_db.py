@@ -2,27 +2,61 @@ from utilities.getting_soup_from_web import BSoup
 import pandas as pd
 import sqlite3
 
-def timetables(id_web, line_web_names):
+def user_options():
+    prompt = 'Choose one of the following options:'
+    prompt += '\n "1" OBTAIN A DATABASE WITH TIMETABLE FOR EVERY LINE'
+    prompt += '\n "2" OBTAIN A DATABASE WITH BUS_STOPS FOR EVERY LINE'
+    prompt += '\n "3" OBTAIN A DATABASE WITH BOTH TIMETABLES AND BUS_STOPS '+ \
+              'FOR EVERY LINE\n"q" to quit'
+    active = True
+    while active:
+        user_choice = input(prompt)
+        if user_choice == '1':
+            timetables(id_web, num_linea)
+        elif user_choice == '2':
+            bus_stops(id_web, num_linea)
+        elif user_choice == '2':
+            timetables(id_web, num_linea)
+            bus_stops(id_web, num_linea)
+        else:
+            print('You must choose either one of the three options, or quit'+ \
+                  '\nType: "1" "2" "3", or "q"')
+            active = True
+            
+def soup_timetables(id_, name):
+    '''RETRIEVES THE SOUP AFTER SCRAPING THE TIMETABLE WEBPAGE'''
+    url_timetables =  'http://transportesrober.com:9055/websae/Transportes/hora'
+    url_timetables += 'rio.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/2017&desde'
+    url_timetables += '_horario=si'
+    url_timetables = url_timetables.format(id_, name)
+    return BSoup(url_timetables).find('div', {'id':'PanelHorario'}) 
+
+def obtain_routes(id_, name):
+    '''RETRIEVES THE ROUTES FOR A CERTAIN LINE'''
+    soup = soup_timetables(id_, name)
+##    print(soup)
+    if (bool(soup)):     
+        routes = soup.find_all('td', {'class':'tablacabecera'})
+        return(routes)
+    else:
+        lines_not_found.append(name)
+        print('Line not found:', lines_not_found)
+
+def timetables(id_web, line_web_names): 
     '''RETRIEVES ALL BUS_TIMETABLE FOR EACH BUS_LINE AND POPULATE A DB WITH ITS VALUES'''
     conn_timetables   = sqlite3.connect('timetables_Trober.db')
 
-    lines_not_found   = [] #por si no entra,sabemos en que linea no ha entrado
     for id_, name in zip(id_web, line_web_names):
         routes = []
-        url_timetables =  'http://transportesrober.com:9055/websae/Transportes/hora'
-        url_timetables += 'rio.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/2017&desde'
-        url_timetables += '_horario=si'
-        url_timetables = url_timetables.format(id_, name)
-        print(url_timetables)
-        soup = BSoup(url_timetables).find('div', {'id':'PanelHorario'})
-        print('Id: ', id_, '\nNombre: ', name)
-        if (bool(soup)):     
-            routes = soup.find_all('td', {'class':'tablacabecera'})
+        routes = obtain_routes(id_, name)
+        soup = soup_timetables(id_, name)
+
+        if (routes):
             for i, route in enumerate(routes):
                 timetableDF   = pd.DataFrame(
                     columns = ['bus_line', 'route', 'timetable'])
                 table_name = '{}'.format(name)+'_'+ \
-                               '_'.join(route.text.strip().split())
+                                '_'.join(route.text.strip().split())
                 table_name = table_name.replace('-', '').replace('__', '_')
                 table_name = table_name.replace(' ', '')
                 table_timetable = soup.find_all('table')[2+i]
@@ -35,28 +69,26 @@ def timetables(id_web, line_web_names):
                 timetableDF = timetableDF.append(
                     pd.DataFrame(
                         {'bus_line':name, 'route':table_name,
-                         'timetable':tr_times},
-                        columns=['bus_line', 'route', 'timetable']))
-                
+                            'timetable':tr_times},
+                            columns=['bus_line', 'route', 'timetable']))
+                    
                 timetableDF.to_sql(table_name, conn_timetables, index=False)
-                conn_horas.commit()
-        else: 
-            lines_not_found.append(name)
-
+                conn_timetables.commit()
+            
     conn_timetables.close()
             
 def bus_stops(id_web, line_web_names):
     '''RETRIEVES ALL BUS_STOPS FOR EACH BUS_LINE AND POPULATE A DB WITH ITS VALUES'''
     conn_bus_stops = sqlite3.connect('bus_stops_Trober.db')
 
-    lines_not_found = [] #por si no entra,sabemos linea no ha entrado
-
     for id_, name in zip(id_web, line_web_names):
         url_bus_stops = 'http://transportesrober.com:9055/websae/Transportes/'+ \
                       'linea.aspx?idlinea='+str(id_)
         soup = BSoup(url_bus_stops)
-        if (bool(soup) & bool(routes)):
-           for i, route in enumerate(routes):????? AQUI HAY UN PROBLEMA, AL HABER PARTIDO EN DOS FUNCIONES, NO TENEMOS LAS RUTAS AHORA. MODULAR ESA PARTE DE LA FUNCION ANTERIOR
+        routes = []
+        routes = obtain_routes(id_, name)
+        if (bool(soup) and bool(routes)):
+            for i, route in enumerate(routes):#????? AQUI HAY UN PROBLEMA, AL HABER PARTIDO EN DOS FUNCIONES, NO TENEMOS LAS RUTAS AHORA. MODULAR ESA PARTE DE LA FUNCION ANTERIOR
                 busstopsDF = pd.DataFrame(columns = ['busstop', 'transfer'])
             
                 table_name = '{}'.format(name)+'_'+\
@@ -79,17 +111,19 @@ def bus_stops(id_web, line_web_names):
                     busstopsDF = busstopsDF.append(
                         pd.DataFrame(data = [[bus_stop, transfers]],
                                      columns=['busstop', 'transfer']))
-                busstopsDF.to_sql(table_name, conn_busstops, index=False)
-                conn_paradas.commit()
+                busstopsDF.to_sql(table_name, conn_bus_stops, index=False)
+                conn_bus_stops.commit()
         else: 
-            lines_not_found.append(nombre)
+            lines_not_found.append(name)
 
-    conn_busstops.close()
+    conn_bus_stops.close()
 
 web_codesDF = pd.read_csv('lista_lineas_horarios.csv',
                                index_col = 'Unnamed: 0')
-web_codesDF = web_codesDF.reset_index(drop=True)
+web_codesDF      = web_codesDF.reset_index(drop=True)
 id_web           = web_codesDF.id_web.values
 num_linea        = web_codesDF.num_linea.values
+
+lines_not_found = [] 
 timetables(id_web, num_linea)
 bus_stops(id_web, num_linea)
