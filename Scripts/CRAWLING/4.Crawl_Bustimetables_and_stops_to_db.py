@@ -3,11 +3,11 @@ import pandas as pd
 import sqlite3
 
 def user_options():
-    prompt = 'Choose one of the following options:'
-    prompt += '\n "1" OBTAIN A DATABASE WITH TIMETABLE FOR EVERY LINE'
-    prompt += '\n "2" OBTAIN A DATABASE WITH BUS_STOPS FOR EVERY LINE'
-    prompt += '\n "3" OBTAIN A DATABASE WITH BOTH TIMETABLES AND BUS_STOPS '+ \
-              'FOR EVERY LINE\n"q" to quit'
+    prompt = '\nChoose one of the following options:'
+    prompt += '\n --> "1" OBTAIN A DATABASE WITH TIMETABLE FOR EVERY LINE'
+    prompt += '\n --> "2" OBTAIN A DATABASE WITH BUS_STOPS FOR EVERY LINE'
+    prompt += '\n --> "3" OBTAIN A DATABASE WITH BOTH TIMETABLES AND '+ \
+              'BUS_STOPS FOR EVERY LINE\n "q" to quit\n'
     active = True
     while active:
         user_choice = input(prompt)
@@ -15,9 +15,11 @@ def user_options():
             timetables(id_web, num_linea)
         elif user_choice == '2':
             bus_stops(id_web, num_linea)
-        elif user_choice == '2':
+        elif user_choice == '3':
             timetables(id_web, num_linea)
             bus_stops(id_web, num_linea)
+        elif user_choice == 'q':
+            break
         else:
             print('You must choose either one of the three options, or quit'+ \
                   '\nType: "1" "2" "3", or "q"')
@@ -125,5 +127,4 @@ id_web           = web_codesDF.id_web.values
 num_linea        = web_codesDF.num_linea.values
 
 lines_not_found = [] 
-timetables(id_web, num_linea)
-bus_stops(id_web, num_linea)
+user_options()
