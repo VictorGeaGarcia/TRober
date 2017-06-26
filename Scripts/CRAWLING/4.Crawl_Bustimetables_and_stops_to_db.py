@@ -3,6 +3,7 @@ import pandas as pd
 import sqlite3
 
 def user_options():
+    '''USER INTERFACE SO THAT IT CAN BE CHOSEN WHAT HE/SHE WANTS TO DO'''
     prompt = '\nChoose one of the following options:'
     prompt += '\n --> "1" OBTAIN A DATABASE WITH TIMETABLE FOR EVERY LINE'
     prompt += '\n --> "2" OBTAIN A DATABASE WITH BUS_STOPS FOR EVERY LINE'
@@ -27,9 +28,9 @@ def user_options():
             
 def soup_timetables(id_, name):
     '''RETRIEVES THE SOUP AFTER SCRAPING THE TIMETABLE WEBPAGE'''
-    url_timetables =  'http://transportesrober.com:9055/websae/Transportes/hora'
-    url_timetables += 'rio.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/2017&desde'
-    url_timetables += '_horario=si'
+    url_timetables =  'http://transportesrober.com:9055/websae/Transportes'
+    url_timetables += '/horario.aspx?id={0}&tipo=L&nombre={1}&fecha=17/02/'
+    url_timetables += '2017&desde_horario=si'
     url_timetables = url_timetables.format(id_, name)
     return BSoup(url_timetables).find('div', {'id':'PanelHorario'}) 
 
@@ -45,7 +46,8 @@ def obtain_routes(id_, name):
         print('Line not found:', lines_not_found)
 
 def timetables(id_web, line_web_names): 
-    '''RETRIEVES ALL BUS_TIMETABLE FOR EACH BUS_LINE AND POPULATE A DB WITH ITS VALUES'''
+    '''RETRIEVES ALL BUS_TIMETABLE FOR EACH BUS_LINE
+       AND POPULATE A DB WITH ITS VALUES'''
     conn_timetables   = sqlite3.connect('timetables_Trober.db')
 
     for id_, name in zip(id_web, line_web_names):
@@ -80,17 +82,18 @@ def timetables(id_web, line_web_names):
     conn_timetables.close()
             
 def bus_stops(id_web, line_web_names):
-    '''RETRIEVES ALL BUS_STOPS FOR EACH BUS_LINE AND POPULATE A DB WITH ITS VALUES'''
+    '''RETRIEVES ALL BUS_STOPS FOR EACH BUS_LINE
+       AND POPULATE A DB WITH ITS VALUES'''
     conn_bus_stops = sqlite3.connect('bus_stops_Trober.db')
 
     for id_, name in zip(id_web, line_web_names):
-        url_bus_stops = 'http://transportesrober.com:9055/websae/Transportes/'+ \
-                      'linea.aspx?idlinea='+str(id_)
+        url_bus_stops = 'http://transportesrober.com:9055/websae/Transportes/'
+        url_bus_stops += 'linea.aspx?idlinea='+str(id_)
         soup = BSoup(url_bus_stops)
         routes = []
         routes = obtain_routes(id_, name)
         if (bool(soup) and bool(routes)):
-            for i, route in enumerate(routes):#????? AQUI HAY UN PROBLEMA, AL HABER PARTIDO EN DOS FUNCIONES, NO TENEMOS LAS RUTAS AHORA. MODULAR ESA PARTE DE LA FUNCION ANTERIOR
+            for i, route in enumerate(routes):
                 busstopsDF = pd.DataFrame(columns = ['busstop', 'transfer'])
             
                 table_name = '{}'.format(name)+'_'+\
