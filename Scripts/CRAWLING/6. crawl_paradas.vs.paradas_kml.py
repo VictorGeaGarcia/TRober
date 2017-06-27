@@ -2,6 +2,9 @@ import pandas as pd
 import sqlite3
 
 def limpia_tildes_dim(row):
+    '''WE CLEAN THE BUS_STOPS SO THAT THEY DONT CONTAIN WEIRD CHARACTERS
+       NOR WEIRD NAMES SO THAT WE CAN MATCH EASILY BUS_STOPS CRAWLED
+       FROM KML FILES AND THOSE IN T.ROBER WEBPAGE'''
     simbols_wrong = ['Av. ', 'Av.', 'Avda ', 'Avda. ', 'Avda.de ', 'Avda.',
                      'Sta M?', 'Santa M?', 'Cno', 'Ctra','D?a. M?','N.? S.?',
                      'Jose M?','mª','n.ª s.ª','gª','P.?', 'Arg?eta','Ni?os',
@@ -28,6 +31,7 @@ def limpia_tildes_dim(row):
     return row
 
 def coordenadas(row):
+    '''WE OBTAIN COORDINATES FOR THOSE BUS_STOPS FOUND IN KML FILE'''
     match = paradas_kml[['Lon','Lat']][paradas_kml.Name == row.paradas]
     if match.index.size == 0: #No ha habido match para la parada
         no_matchset.add(row.paradas)
@@ -40,6 +44,11 @@ def coordenadas(row):
         return [lon , lat]
 
 def main():
+    '''DB POPULATION WITH COORDINATES FOR THOSE BUS_STOPS FOUND IN THE
+       KML FILE'''
+
+    #THIS HAS TO BE UPDATED TO WORK WITH THE NEW DATABASE CONTAINING
+    #BOTH TIMETABLES AND BUS_STOPS 
     conn = sqlite3.connect('..\..\Data\Web_crawling_T.Rober\paradas_Trober.db')
     c = conn.cursor()
     c.execute("SELECT name FROM sqlite_master WHERE type='table';")

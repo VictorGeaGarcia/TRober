@@ -1,6 +1,7 @@
-from utilities.getting_soup_from_web import BSoup
 import pandas as pd
 import sqlite3
+
+from utilities.getting_soup_from_web import BSoup
 
 def user_options():
     '''USER INTERFACE SO THAT IT CAN BE CHOSEN WHAT HE/SHE WANTS TO DO'''
@@ -37,7 +38,6 @@ def soup_timetables(id_, name):
 def obtain_routes(id_, name):
     '''RETRIEVES THE ROUTES FOR A CERTAIN LINE'''
     soup = soup_timetables(id_, name)
-##    print(soup)
     if (bool(soup)):     
         routes = soup.find_all('td', {'class':'tablacabecera'})
         return(routes)
@@ -48,7 +48,7 @@ def obtain_routes(id_, name):
 def timetables(id_web, line_web_names): 
     '''RETRIEVES ALL BUS_TIMETABLE FOR EACH BUS_LINE
        AND POPULATE A DB WITH ITS VALUES'''
-    conn_timetables   = sqlite3.connect('timetables_Trober.db')
+    conn_timetables   = sqlite3.connect('..\..\Data\Web_crawling_T.Rober\Trober_data.db')
 
     for id_, name in zip(id_web, line_web_names):
         routes = []
@@ -59,7 +59,8 @@ def timetables(id_web, line_web_names):
             for i, route in enumerate(routes):
                 timetableDF   = pd.DataFrame(
                     columns = ['bus_line', 'route', 'timetable'])
-                table_name = '{}'.format(name)+'_'+ \
+                table_name = 'timetable_'
+                table_name += '{}'.format(name)+'_'+ \
                                 '_'.join(route.text.strip().split())
                 table_name = table_name.replace('-', '').replace('__', '_')
                 table_name = table_name.replace(' ', '')
@@ -84,7 +85,7 @@ def timetables(id_web, line_web_names):
 def bus_stops(id_web, line_web_names):
     '''RETRIEVES ALL BUS_STOPS FOR EACH BUS_LINE
        AND POPULATE A DB WITH ITS VALUES'''
-    conn_bus_stops = sqlite3.connect('bus_stops_Trober.db')
+    conn_bus_stops = sqlite3.connect('..\..\Data\Web_crawling_T.Rober\Trober_data.db')
 
     for id_, name in zip(id_web, line_web_names):
         url_bus_stops = 'http://transportesrober.com:9055/websae/Transportes/'
@@ -95,8 +96,9 @@ def bus_stops(id_web, line_web_names):
         if (bool(soup) and bool(routes)):
             for i, route in enumerate(routes):
                 busstopsDF = pd.DataFrame(columns = ['busstop', 'transfer'])
-            
-                table_name = '{}'.format(name)+'_'+\
+
+                table_name = 'busstop_'
+                table_name += '{}'.format(name)+'_'+\
                                '_'.join(route.text.strip().split())
                 table_name = table_name.replace(
                     '-','').replace('__','_').replace(' ', '')                
@@ -123,7 +125,7 @@ def bus_stops(id_web, line_web_names):
 
     conn_bus_stops.close()
 
-web_codesDF = pd.read_csv('lista_lineas_horarios.csv',
+web_codesDF = pd.read_csv('..\..\Data\Web_crawling_T.Rober\lista_lineas_horarios.csv',
                                index_col = 'Unnamed: 0')
 web_codesDF      = web_codesDF.reset_index(drop=True)
 id_web           = web_codesDF.id_web.values
